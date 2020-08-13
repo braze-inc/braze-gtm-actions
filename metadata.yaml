@@ -1,5 +1,5 @@
 homepage: "https://www.braze.com/"
-documentation: "https://github.com/Appboy/google-tag-manager-actions-template"
+documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
-  - sha: 049416d00e1e114ecce2838d2d89c7a0671cff9f
-    changeNotes: Initial release
+  - sha: 8f90865139cc0113bb44a7de9fda7231c4c9c436
+    changeNotes: Initial Version
