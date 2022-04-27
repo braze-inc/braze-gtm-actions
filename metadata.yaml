@@ -1,5 +1,5 @@
 homepage: "https://www.braze.com/"
 documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
-  - sha: 8f90865139cc0113bb44a7de9fda7231c4c9c436
-    changeNotes: Initial Version
+  - sha: 8e810397b735ad3c8f4f028323f4a7c869cd6767
+    changeNotes: "Web SDK 4.0 compatibility"
