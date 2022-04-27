@@ -241,15 +241,23 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 const logToConsole = require('logToConsole');
 const copyFromWindow = require('copyFromWindow');
 const callInWindow = require('callInWindow');
-const appboy = copyFromWindow('appboy');
 const log = data.debug ? logToConsole : (() => {});
 const message = "Braze: ";
+
+const appboy = copyFromWindow('appboy');
+const braze = copyFromWindow('braze');
+
+if (appboy == null && braze == null) {
+  log(message, "Could not find Braze Web SDK. Make sure it has been initialized before running this tag.");
+}
+const sdkObject = appboy == null ? 'braze' : 'appboy';
+
 // Get the selected action
 const action = data.actionsMenu;
 if (action === 'changeUser') {
   const userID = data.userID;
-  callInWindow('appboy.changeUser', userID);
-  callInWindow('appboy.openSession');
+  callInWindow(sdkObject + '.changeUser', userID);
+  callInWindow(sdkObject + '.openSession');
 }
 
 if (action === 'purchase') {
@@ -259,36 +267,46 @@ if (action === 'purchase') {
   const quantity = data.quantity;
   const userInputProperties = data.purchaseProperties;
   const purchaseProperties = {};
+
   if (userInputProperties && userInputProperties.length > 0) {
-      userInputProperties.forEach((purchaseProperty) => {
-        purchaseProperties[purchaseProperty.purchasePropertyKey] = purchaseProperty.purchasePropertyValue;
+    userInputProperties.forEach((purchaseProperty) => {
+      purchaseProperties[purchaseProperty.purchasePropertyKey] = purchaseProperty.purchasePropertyValue;
     });
   }
 
-  callInWindow('appboy.logPurchase', productId, price, currencyCode, quantity, purchaseProperties);
-  }
+  callInWindow(sdkObject + '.logPurchase', productId, price, currencyCode, quantity, purchaseProperties);
+}
 
 if (action === 'logCustomEvent') {
   const eventName = data.eventName;
   const userEvent = data.customEvent;
   const eventProperties = {};
   if (userEvent && userEvent.length > 0) {
-      userEvent.forEach((eventItem) => {
-        eventProperties[eventItem.propertyKey] = eventItem.propertyValue;
+    userEvent.forEach((eventItem) => {
+      eventProperties[eventItem.propertyKey] = eventItem.propertyValue;
     });
   }
-  callInWindow('appboy.logCustomEvent', eventName, eventProperties);
+  callInWindow(sdkObject + '.logCustomEvent', eventName, eventProperties);
 }
 
 if (action === 'disableTracking') {
-  callInWindow('appboy.stopWebTracking');
-  log(message, "Succesfully disabled web tracking!");
+  if (appboy != null) {
+    callInWindow('appboy.stopWebTracking');
+  } else {
+    callInWindow('braze.disableSdk');
+  }
+  log(message, "Disabled web tracking");
 }
 
 if (action === 'resumeTracking') {
-  callInWindow('appboy.resumeWebTracking');
-  log(message, "Succesfully resumed web tracking!");
+  if (appboy != null) {
+    callInWindow('appboy.resumeWebTracking');
+  } else {
+    callInWindow('braze.enableSdk');
+  }
+  log(message, "Resumed web tracking");
 }
+
 data.gtmOnSuccess();
 
 
@@ -504,84 +522,6 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "appboy.registerAppboyPushMessages"
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  },
-                  {
-                    "type": 8,
-                    "boolean": true
-                  }
-                ]
-              },
-              {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "key"
-                  },
-                  {
-                    "type": 1,
-                    "string": "read"
-                  },
-                  {
-                    "type": 1,
-                    "string": "write"
-                  },
-                  {
-                    "type": 1,
-                    "string": "execute"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
-                    "string": "appboy.unregisterAppboyPushMessages"
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  },
-                  {
-                    "type": 8,
-                    "boolean": false
-                  },
-                  {
-                    "type": 8,
-                    "boolean": true
-                  }
-                ]
-              },
-              {
-                "type": 3,
-                "mapKey": [
-                  {
-                    "type": 1,
-                    "string": "key"
-                  },
-                  {
-                    "type": 1,
-                    "string": "read"
-                  },
-                  {
-                    "type": 1,
-                    "string": "write"
-                  },
-                  {
-                    "type": 1,
-                    "string": "execute"
-                  }
-                ],
-                "mapValue": [
-                  {
-                    "type": 1,
                     "string": "appboy.stopWebTracking"
                   },
                   {
@@ -675,6 +615,279 @@ ___WEB_PERMISSIONS___
                     "boolean": true
                   }
                 ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.changeUser"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.openSession"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.logCustomEvent"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.disableSdk"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.enableSdk"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.logPurchase"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
               }
             ]
           }
@@ -693,60 +906,88 @@ ___TESTS___
 
 scenarios:
 - name: Call changeUser if user choose this option
-  code: |-
-    mockData.userID = 'userID';
-    const testUserId = 'userID';
-    runCode(mockData);
-
-    mock('callInWindow', function(method, id) {
-      if (method !== 'appboy.changeUser') {
-        fail('Unexpected method ' + method + " was called.");
-      }
-      assertThat(id).isEqualTo(testUserId);
-    });
-
-    // Verify that the tag finished successfully.
-    assertApi('callInWindow').wasCalledWith('appboy.changeUser', 'userID');
-    assertApi('gtmOnSuccess').wasCalled();
+  code: "mockData.userID = 'userID';\nconst testUserId = 'userID';\nrunCode(mockData);\n\
+    \nmock('callInWindow', function(method, id) {\n  if (method === 'braze.openSession'\
+    \ || method === 'appboy.openSession') {\n    return;\n  }\n  \n  if (method !==\
+    \ 'braze.changeUser' && method !== 'appboy.changeUser') {\n    fail('Unexpected\
+    \ method ' + method + \" was called.\");\n  }\n  \n  assertThat(id).isEqualTo(testUserId);\n\
+    });\n\n// Verify that the tag finished successfully.\n\n\nassertApi('callInWindow').wasCalledWith('braze.changeUser',\
+    \ 'userID');\nassertApi('gtmOnSuccess').wasCalled();\n\n// pre-4.0\nmock('copyFromWindow',\
+    \ function(object) {\n   if (object === 'appboy') {\n     return {};\n   } else\
+    \ {\n     return undefined;\n   }\n});\n\nrunCode(mockData);\n\nassertApi('callInWindow').wasCalledWith('appboy.changeUser',\
+    \ 'userID');\nassertApi('gtmOnSuccess').wasCalled();\n"
 - name: Call logCustomEvent if user choose this option
   code: "mockData.eventName = 'eventName';\nmockData.actionsMenu = 'logCustomEvent';\n\
     mockData.customEvent = [\n  {propertyKey:'color',\n   propertyValue:'blue'},\n\
     \  {propertyKey:'size',\n   propertyValue:'medium'}\n];\n\nconst testEventName\
     \ = 'eventName';\nconst testEventProperties = {\n  color: 'blue',\n  size: 'medium'\n\
     };\n\nmock('callInWindow', function(method, name, properties) {\n  if (method\
-    \ !== 'appboy.logCustomEvent') {\n    fail('Unexpected method ' + method + \"\
-    \ was called.\");\n  }\n  \n  assertThat(name, 'Value mismatched in event name:').isEqualTo(testEventName);\n\
-    \  mockData.customEvent.forEach((eventItem) => {\n    const key = eventItem.propertyKey;\n\
-    \    const value = eventItem.propertyValue;\n    assertThat(testEventProperties[key],\
-    \ 'Value mismatched in property ' + key + ': ').isEqualTo(value);\n  });\n  \n\
-    });\n\nrunCode(mockData);\n\n// Verify that the tag finished successfully.\nassertApi('callInWindow').wasCalledWith('appboy.logCustomEvent',\
-    \ testEventName, testEventProperties);\nassertApi('gtmOnSuccess').wasCalled();"
+    \ !== 'braze.logCustomEvent' && method !== 'appboy.logCustomEvent') {\n    fail('Unexpected\
+    \ method ' + method + \" was called.\");\n  }\n  \n  assertThat(name, 'Value mismatched\
+    \ in event name:').isEqualTo(testEventName);\n  mockData.customEvent.forEach((eventItem)\
+    \ => {\n    const key = eventItem.propertyKey;\n    const value = eventItem.propertyValue;\n\
+    \    assertThat(testEventProperties[key], 'Value mismatched in property ' + key\
+    \ + ': ').isEqualTo(value);\n  });\n  \n});\n\nrunCode(mockData);\n\n// Verify\
+    \ that the tag finished successfully.\nassertApi('callInWindow').wasCalledWith('braze.logCustomEvent',\
+    \ testEventName, testEventProperties);\nassertApi('gtmOnSuccess').wasCalled();\n\
+    \n// pre-4.0\nmock('copyFromWindow', function(object) {\n   if (object === 'appboy')\
+    \ {\n     return {};\n   } else {\n     return undefined;\n   }\n});\n\nrunCode(mockData);\n\
+    \nassertApi('callInWindow').wasCalledWith('appboy.logCustomEvent', testEventName,\
+    \ testEventProperties);\nassertApi('gtmOnSuccess').wasCalled();"
 - name: Call stopTracking if user choose this option
   code: |-
     mockData.actionsMenu = 'disableTracking';
     runCode(mockData);
 
     mock('callInWindow', function(method) {
-      if (method !== 'appboy.stopWebTracking') {
+      if (method !== 'braze.disableSdk' && method !== 'appboy.stopWebTracking') {
         fail('Unexpected method ' + method + " was called.");
       }
     });
 
     // Verify that the tag finished successfully.
+    assertApi('callInWindow').wasCalledWith('braze.disableSdk');
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // pre-4.0
+    mock('copyFromWindow', function(object) {
+       if (object === 'appboy') {
+         return {};
+       } else {
+         return undefined;
+       }
+    });
+
+    runCode(mockData);
+
     assertApi('callInWindow').wasCalledWith('appboy.stopWebTracking');
     assertApi('gtmOnSuccess').wasCalled();
 - name: Call resumeTracking if user choose this option
-  code: |-
+  code: |
     mockData.actionsMenu = 'resumeTracking';
     runCode(mockData);
 
     mock('callInWindow', function(method) {
-      if (method !== 'appboy.resumeWebTracking') {
+      if (method !== 'braze.enableSdk' && method !== 'appboy.resumeWebTracking') {
         fail('Unexpected method ' + method + " was called.");
       }
     });
 
     // Verify that the tag finished successfully.
+    assertApi('callInWindow').wasCalledWith('braze.enableSdk');
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // pre-4.0
+    mock('copyFromWindow', function(object) {
+       if (object === 'appboy') {
+         return {};
+       } else {
+         return undefined;
+       }
+    });
+
+    runCode(mockData);
+
     assertApi('callInWindow').wasCalledWith('appboy.resumeWebTracking');
     assertApi('gtmOnSuccess').wasCalled();
 - name: Call logPurchase if user choose this option
@@ -772,7 +1013,7 @@ scenarios:
       size: 'medium'
     };
     mock('callInWindow', function(method, productId, price, currencyCode, quantity, purchaseProperties) {
-      if (method !== 'appboy.logPurchase') {
+      if (method !== 'braze.logPurchase' && method!== 'appboy.logPurchase') {
         fail('Unexpected method ' + method + " was called.");
       }
       assertThat(productId, 'Value mismatched in productId:').isEqualTo(testId);
@@ -789,17 +1030,31 @@ scenarios:
     runCode(mockData);
 
     // Verify that the tag finished successfully.
+    assertApi('callInWindow').wasCalledWith('braze.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // pre-4.0
+    mock('copyFromWindow', function(object) {
+       if (object === 'appboy') {
+         return {};
+       } else {
+         return undefined;
+       }
+    });
+
+    runCode(mockData);
+
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
     assertApi('gtmOnSuccess').wasCalled();
 setup: |-
-  const url = 'https://js.appboycdn.com/web-sdk/2.6/appboy.min.js';
   const logToConsole = require('logToConsole');
-  // Create injectScript mock
-  let success, failure;
-  mock('injectScript', (url, onsuccess, onfailure) => {
-    success = onsuccess;
-    failure = onfailure;
-    onsuccess();
+
+  mock('copyFromWindow', function(object) {
+     if (object === 'braze') {
+       return {};
+     } else {
+       return undefined;
+     }
   });
 
   const mockData = {
