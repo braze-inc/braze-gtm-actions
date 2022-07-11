@@ -59,6 +59,10 @@ ___TEMPLATE_PARAMETERS___
       {
         "value": "resumeTracking",
         "displayValue": "Resume Tracking"
+      },
+      {
+        "value": "eCommercePurchase",
+        "displayValue": "E-Commerce Purchase"
       }
     ],
     "simpleValueType": true
@@ -228,6 +232,30 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
+    "type": "PARAM_TABLE",
+    "name": "eCommercePurchaseProperties",
+    "displayName": "Purchase Properties",
+    "paramTableColumns": [
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "propertyName",
+          "displayName": "Property Name",
+          "simpleValueType": true
+        },
+        "isUnique": true
+      },
+    ],
+    "help": "",
+    "enablingConditions": [
+      {
+        "paramName": "actionsMenu",
+        "paramValue": "eCommercePurchase",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
     "type": "CHECKBOX",
     "name": "debug",
     "checkboxText": "Enable GTM Tag Debugging",
@@ -241,6 +269,8 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 const logToConsole = require('logToConsole');
 const copyFromWindow = require('copyFromWindow');
 const callInWindow = require('callInWindow');
+const queryPermission = require('queryPermission');
+const copyFromDataLayer = require('copyFromDataLayer');
 const log = data.debug ? logToConsole : (() => {});
 const message = "Braze: ";
 
@@ -275,6 +305,38 @@ if (action === 'purchase') {
   }
 
   callInWindow(sdkObject + '.logPurchase', productId, price, currencyCode, quantity, purchaseProperties);
+}
+
+if (action === 'eCommercePurchase') {
+  const userInputProperties = data.eCommercePurchaseProperties;
+
+  const dlKey = 'ecommerce.items';
+  if (queryPermission('read_data_layer', dlKey)) {
+    const items = copyFromDataLayer(dlKey);
+
+    if (items && items.length > 0) {
+      items.forEach((item) => {
+        const productId = item.item_id;
+        const price = item.price;
+        const currency = item.currency;
+        const quantity = item.quantity;
+
+        const purchaseProperties = {};
+
+
+        if (userInputProperties && userInputProperties.length > 0) {
+          userInputProperties.forEach((prop) => {
+            if (item[prop]) {
+              purchaseProperties[prop] = item[prop];
+            }
+          });
+        }
+
+        callInWindow(sdkObject + '.logPurchase', productId, price, currency, quantity, purchaseProperties);
+
+      });
+    }
+  }
 }
 
 if (action === 'logCustomEvent') {
@@ -1031,6 +1093,106 @@ scenarios:
 
     // Verify that the tag finished successfully.
     assertApi('callInWindow').wasCalledWith('braze.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // pre-4.0
+    mock('copyFromWindow', function(object) {
+       if (object === 'appboy') {
+         return {};
+       } else {
+         return undefined;
+       }
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logPurchase for each item if user choose eCommerce purchase option
+  code: |-
+    mockData.actionsMenu = 'eCommercePurchase';
+    mockData.eCommercePurchaseProperties = [
+      {propertyName: 'item_brand'},
+      {propertyName: 'location_id'}
+    ];
+
+    mock('queryPermission', function(object) {
+       return [
+         {
+          item_id: "SKU_12345",
+          item_name: "Stan and Friends Tee",
+          affiliation: "Google Merchandise Store",
+          coupon: "SUMMER_FUN",
+          currency: "USD",
+          discount: 2.22,
+          index: 0,
+          item_brand: "AE",
+          item_category: "Apparel",
+          item_category2: "Adult",
+          item_category3: "Shirts",
+          item_category4: "Crew",
+          item_category5: "Short sleeve",
+          item_list_id: "related_products",
+          item_list_name: "Related Products",
+          item_variant: "green",
+          location_id: "L_12345",
+          price: 9.99,
+          quantity: 1
+        },
+        {
+          item_id: "SKU_12346",
+          item_name: "Google Grey Women's Tee",
+          affiliation: "Google Merchandise Store",
+          coupon: "SUMMER_FUN",
+          currency: "USD",
+          discount: 3.33,
+          index: 1,
+          item_brand: "A&F",
+          item_category: "Apparel",
+          item_category2: "Adult",
+          item_category3: "Shirts",
+          item_category4: "Crew",
+          item_category5: "Short sleeve",
+          item_list_id: "related_products",
+          item_list_name: "Related Products",
+          item_variant: "gray",
+          location_id: "L_12346",
+          price: 20.99,
+          promotion_id: "P_12345",
+          promotion_name: "Summer Sale",
+          quantity: 2
+        }
+       ]
+    });
+
+    const testId = 'SKU_12345';
+    const testPrice = 9.99;
+    const testCurrencyCode = 'USD';
+    const testQuantity = 1;
+    const testPurchaseProperties = {
+      item_brand: 'AE',
+      location_id: 'L_12345'
+    };
+
+    mock('callInWindow', function(method, productId, price, currencyCode, quantity, purchaseProperties) {
+      if (method !== 'braze.logPurchase' && method!== 'appboy.logPurchase') {
+        fail('Unexpected method ' + method + " was called.");
+      }
+      assertThat(productId, 'Value mismatched in productId:').isEqualTo(testId);
+      assertThat(price, 'Value mismatched in price:').isEqualTo(testPrice);
+      assertThat(currencyCode, 'Value mismatched in currencyCode:').isEqualTo(testCurrencyCode);
+      assertThat(quantity, 'Value mismatched in quantity:').isEqualTo(testQuantity);
+      mockData.eCommercePurchaseProperties.forEach((key) => {
+        const value = testPurchaseProperties[key];
+        assertThat(purchaseProperties[key], 'Value mismatched in property ' + key + ': ').isEqualTo(value);
+      });
+    });
+
+    runCode(mockData);
+
+    // Verify that the tag finished successfully.
+    assertApi('callInWindow').wasCalledWith('braze.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
+    assertApi('callInWindow').was
     assertApi('gtmOnSuccess').wasCalled();
 
     // pre-4.0
