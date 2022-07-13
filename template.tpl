@@ -45,12 +45,12 @@ ___TEMPLATE_PARAMETERS___
         "displayValue": "Change User"
       },
       {
-        "value": "purchase",
-        "displayValue": "Purchase"
+        "value": "logCustomEvent",
+        "displayValue": "Log Custom Event"
       },
       {
-        "value": "logCustomEvent",
-        "displayValue": "Custom Event"
+        "value": "eCommercePurchase",
+        "displayValue": "E-Commerce Purchase"
       },
       {
         "value": "disableTracking",
@@ -59,9 +59,14 @@ ___TEMPLATE_PARAMETERS___
       {
         "value": "resumeTracking",
         "displayValue": "Resume Tracking"
+      },
+      {
+        "value": "purchase",
+        "displayValue": "Log Purchase"
       }
     ],
-    "simpleValueType": true
+    "simpleValueType": true,
+    "alwaysInSummary": true
   },
   {
     "type": "TEXT",
@@ -228,6 +233,30 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
+    "type": "PARAM_TABLE",
+    "name": "eCommercePurchaseProperties",
+    "displayName": "Purchase Properties",
+    "paramTableColumns": [
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "propertyName",
+          "displayName": "Property Name",
+          "simpleValueType": true
+        },
+        "isUnique": true
+      }
+    ],
+    "help": "Enter the property names that should be sent along with each purchase event.",
+    "enablingConditions": [
+      {
+        "paramName": "actionsMenu",
+        "paramValue": "eCommercePurchase",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
     "type": "CHECKBOX",
     "name": "debug",
     "checkboxText": "Enable GTM Tag Debugging",
@@ -241,6 +270,8 @@ ___SANDBOXED_JS_FOR_WEB_TEMPLATE___
 const logToConsole = require('logToConsole');
 const copyFromWindow = require('copyFromWindow');
 const callInWindow = require('callInWindow');
+const queryPermission = require('queryPermission');
+const copyFromDataLayer = require('copyFromDataLayer');
 const log = data.debug ? logToConsole : (() => {});
 const message = "Braze: ";
 
@@ -275,6 +306,41 @@ if (action === 'purchase') {
   }
 
   callInWindow(sdkObject + '.logPurchase', productId, price, currencyCode, quantity, purchaseProperties);
+}
+
+if (action === 'eCommercePurchase') {
+  const userInputProperties = data.eCommercePurchaseProperties;
+
+  const dlKey = 'ecommerce.items';
+  if (queryPermission('read_data_layer', dlKey)) {
+    const items = copyFromDataLayer(dlKey);
+
+    if (items && items.length > 0) {
+      items.forEach((item) => {
+        const productId = item.item_id;
+        const price = item.price;
+        const currency = item.currency;
+        const quantity = item.quantity;
+
+        const purchaseProperties = {};
+
+
+        if (userInputProperties && userInputProperties.length > 0) {
+          userInputProperties.forEach((input) => {
+            const prop = input.propertyName;
+            if (item[prop]) {
+              purchaseProperties[prop] = item[prop];
+            }
+          });
+        }
+
+        callInWindow(sdkObject + '.logPurchase', productId, price, currency, quantity, purchaseProperties);
+
+      });
+    }
+  } else {
+    log(message, "Data layer variable ecommerce.items could not be read.");
+  }
 }
 
 if (action === 'logCustomEvent') {
@@ -898,6 +964,32 @@ ___WEB_PERMISSIONS___
       "isEditedByUser": true
     },
     "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "read_data_layer",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "keyPatterns",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "ecommerce.items"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
+    },
+    "isRequired": true
   }
 ]
 
@@ -1045,6 +1137,112 @@ scenarios:
     runCode(mockData);
 
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId, testPrice, testCurrencyCode, testQuantity, testPurchaseProperties);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logPurchase for each item if user choose eCommerce purchase option
+  code: |-
+    mockData.actionsMenu = 'eCommercePurchase';
+    mockData.eCommercePurchaseProperties = [
+      {propertyName: 'item_brand'},
+      {propertyName: 'location_id'}
+    ];
+
+    mock('queryPermission', function(object) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(object) {
+      return [
+          {
+            item_id: "SKU_12345",
+            item_name: "Stan and Friends Tee",
+            affiliation: "Google Merchandise Store",
+            coupon: "SUMMER_FUN",
+            currency: "USD",
+            discount: 2.22,
+            index: 0,
+            item_brand: "AE",
+            item_category: "Apparel",
+            item_category2: "Adult",
+            item_category3: "Shirts",
+            item_category4: "Crew",
+            item_category5: "Short sleeve",
+            item_list_id: "related_products",
+            item_list_name: "Related Products",
+            item_variant: "green",
+            location_id: "L_12345",
+            price: 9.99,
+            quantity: 1
+          },
+          {
+            item_id: "SKU_12346",
+            item_name: "Google Grey Women's Tee",
+            affiliation: "Google Merchandise Store",
+            coupon: "SUMMER_FUN",
+            currency: "USD",
+            discount: 3.33,
+            index: 1,
+            item_brand: "A&F",
+            item_category: "Apparel",
+            item_category2: "Adult",
+            item_category3: "Shirts",
+            item_category4: "Crew",
+            item_category5: "Short sleeve",
+            item_list_id: "related_products",
+            item_list_name: "Related Products",
+            item_variant: "gray",
+            location_id: "L_12346",
+            price: 20.99,
+            promotion_id: "P_12345",
+            promotion_name: "Summer Sale",
+            quantity: 2
+          }
+      ];
+    });
+
+    const testId1 = 'SKU_12345';
+    const testPrice1 = 9.99;
+    const testCurrencyCode1 = 'USD';
+    const testQuantity1 = 1;
+    const testPurchaseProperties1 = {
+      item_brand: 'AE',
+      location_id: 'L_12345'
+    };
+
+    const testId2 = 'SKU_12346';
+    const testPrice2 = 20.99;
+    const testCurrencyCode2 = 'USD';
+    const testQuantity2 = 2;
+    const testPurchaseProperties2 = {
+      item_brand: 'A&F',
+      location_id: 'L_12346'
+    };
+
+    mock('callInWindow', function(method, productId, price, currencyCode, quantity, purchaseProperties) {
+      if (method !== 'braze.logPurchase' && method!== 'appboy.logPurchase') {
+        fail('Unexpected method ' + method + " was called.");
+      }
+    });
+
+    runCode(mockData);
+
+    // Verify that the tag finished successfully.
+    assertApi('callInWindow').wasCalledWith('braze.logPurchase', testId1, testPrice1, testCurrencyCode1, testQuantity1, testPurchaseProperties1);
+    assertApi('callInWindow').wasCalledWith('braze.logPurchase', testId2, testPrice2, testCurrencyCode2, testQuantity2, testPurchaseProperties2);
+    assertApi('gtmOnSuccess').wasCalled();
+
+    // pre-4.0
+    mock('copyFromWindow', function(object) {
+       if (object === 'appboy') {
+         return {};
+       } else {
+         return undefined;
+       }
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId1, testPrice1, testCurrencyCode1, testQuantity1, testPurchaseProperties1);
+    assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId2, testPrice2, testCurrencyCode2, testQuantity2, testPurchaseProperties2);
     assertApi('gtmOnSuccess').wasCalled();
 setup: |-
   const logToConsole = require('logToConsole');
