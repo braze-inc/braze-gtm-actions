@@ -1,6 +1,8 @@
 homepage: "https://www.braze.com/"
 documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
+  - sha: 76ff5f0ca3f6201e85c03b44f1e5abfa9ebe0e89
+    changeNotes: Added new tag to integrate with GTM eCommerce datalayer
   - sha: 8e810397b735ad3c8f4f028323f4a7c869cd6767
     changeNotes: Web SDK 4.0 compatibility
   - sha: 9b5553f44eb1bf3500ac6667ea3ac6f77bc9eb8d
