@@ -1,6 +1,8 @@
 homepage: "https://www.braze.com/"
 documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
+  - sha: 2a53d6df2a27ee2b9bf93fb73b8fd3656cb926cd
+    changeNotes: Fixed enable/disableSDK method name
   - sha: 76ff5f0ca3f6201e85c03b44f1e5abfa9ebe0e89
     changeNotes: Added new action to integrate with GTM eCommerce dataLayer
   - sha: 8e810397b735ad3c8f4f028323f4a7c869cd6767
