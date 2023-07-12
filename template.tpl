@@ -359,7 +359,7 @@ if (action === 'disableTracking') {
   if (appboy != null) {
     callInWindow('appboy.stopWebTracking');
   } else {
-    callInWindow('braze.disableSdk');
+    callInWindow('braze.disableSDK');
   }
   log(message, "Disabled web tracking");
 }
@@ -368,7 +368,7 @@ if (action === 'resumeTracking') {
   if (appboy != null) {
     callInWindow('appboy.resumeWebTracking');
   } else {
-    callInWindow('braze.enableSdk');
+    callInWindow('braze.enableSDK');
   }
   log(message, "Resumed web tracking");
 }
@@ -861,7 +861,7 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "braze.disableSdk"
+                    "string": "braze.disableSDK"
                   },
                   {
                     "type": 8,
@@ -900,7 +900,7 @@ ___WEB_PERMISSIONS___
                 "mapValue": [
                   {
                     "type": 1,
-                    "string": "braze.enableSdk"
+                    "string": "braze.enableSDK"
                   },
                   {
                     "type": 8,
@@ -1032,13 +1032,13 @@ scenarios:
     runCode(mockData);
 
     mock('callInWindow', function(method) {
-      if (method !== 'braze.disableSdk' && method !== 'appboy.stopWebTracking') {
+      if (method !== 'braze.disableSDK' && method !== 'appboy.stopWebTracking') {
         fail('Unexpected method ' + method + " was called.");
       }
     });
 
     // Verify that the tag finished successfully.
-    assertApi('callInWindow').wasCalledWith('braze.disableSdk');
+    assertApi('callInWindow').wasCalledWith('braze.disableSDK');
     assertApi('gtmOnSuccess').wasCalled();
 
     // pre-4.0
@@ -1060,13 +1060,13 @@ scenarios:
     runCode(mockData);
 
     mock('callInWindow', function(method) {
-      if (method !== 'braze.enableSdk' && method !== 'appboy.resumeWebTracking') {
+      if (method !== 'braze.enableSDK' && method !== 'appboy.resumeWebTracking') {
         fail('Unexpected method ' + method + " was called.");
       }
     });
 
     // Verify that the tag finished successfully.
-    assertApi('callInWindow').wasCalledWith('braze.enableSdk');
+    assertApi('callInWindow').wasCalledWith('braze.enableSDK');
     assertApi('gtmOnSuccess').wasCalled();
 
     // pre-4.0
