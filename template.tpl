@@ -1,12 +1,4 @@
-___TERMS_OF_SERVICE___
-
-By creating or modifying this file you agree to Google Tag Manager's Community
-Template Gallery Developer Terms of Service available at
-https://developers.google.com/tag-manager/gallery-tos (or such other URL as
-Google may provide), as modified from time to time.
-
-
-___INFO___
+﻿___INFO___
 
 {
   "type": "TAG",
@@ -63,6 +55,10 @@ ___TEMPLATE_PARAMETERS___
       {
         "value": "purchase",
         "displayValue": "Log Purchase"
+      },
+      {
+        "value": "openSession",
+        "displayValue": "Open Session"
       }
     ],
     "simpleValueType": true,
@@ -371,6 +367,10 @@ if (action === 'resumeTracking') {
     callInWindow('braze.enableSDK');
   }
   log(message, "Resumed web tracking");
+}
+
+if (action === 'openSession') {
+  callInWindow(sdkObject + '.openSession');
 }
 
 data.gtmOnSuccess();
@@ -973,6 +973,13 @@ ___WEB_PERMISSIONS___
       },
       "param": [
         {
+          "key": "allowedKeys",
+          "value": {
+            "type": 1,
+            "string": "specific"
+          }
+        },
+        {
           "key": "keyPatterns",
           "value": {
             "type": 2,
@@ -1244,6 +1251,20 @@ scenarios:
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId1, testPrice1, testCurrencyCode1, testQuantity1, testPurchaseProperties1);
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId2, testPrice2, testCurrencyCode2, testQuantity2, testPurchaseProperties2);
     assertApi('gtmOnSuccess').wasCalled();
+- name: Call openSession if user chooses this option
+  code: |-
+    mockData.actionsMenu = 'openSession';
+
+    mock('callInWindow', function(method, name, properties) {
+      if (method !== 'braze.openSession' && method !== 'appboy.openSession') {
+        fail('Unexpected method ' + method + " was called.");
+      }
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.openSession');
+    assertApi('gtmOnSuccess').wasCalled();
 setup: |-
   const logToConsole = require('logToConsole');
 
@@ -1264,3 +1285,5 @@ setup: |-
 ___NOTES___
 
 Created on 7/14/2020, 3:13:03 PM
+
+
