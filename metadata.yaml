@@ -1,6 +1,8 @@
 homepage: "https://www.braze.com/"
 documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
+  - sha: d916c0ebb37107645554e93b576aca416e1d33ea
+    changeNotes: Added new `openSession` action
   - sha: 2a53d6df2a27ee2b9bf93fb73b8fd3656cb926cd
     changeNotes: Fixed enable/disableSDK method name
   - sha: 76ff5f0ca3f6201e85c03b44f1e5abfa9ebe0e89
