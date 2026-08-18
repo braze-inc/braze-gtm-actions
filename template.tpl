@@ -50,7 +50,7 @@ ___TEMPLATE_PARAMETERS___
       },
       {
         "value": "eCommercePurchase",
-        "displayValue": "E-Commerce Purchase"
+        "displayValue": "E-Commerce Purchase (Legacy)"
       },
       {
         "value": "disableTracking",
@@ -62,15 +62,20 @@ ___TEMPLATE_PARAMETERS___
       },
       {
         "value": "purchase",
-        "displayValue": "Log Purchase"
+        "displayValue": "Log Purchase (Legacy)"
       },
       {
         "value": "openSession",
         "displayValue": "Open Session"
+      },
+      {
+        "value": "logEcommerceEvent",
+        "displayValue": "Log eCommerce Event (New)"
       }
     ],
     "simpleValueType": true,
-    "alwaysInSummary": true
+    "alwaysInSummary": true,
+    "help": "The legacy purchase event is entering maintenance mode. Existing Braze customers can continue using legacy purchase events. They'll keep working as expected, but new functionality will be built on eCommerce recommended events going forward. Braze will provide advance notice well before any end-of-life date is set. New Braze customers should use eCommerce recommended events, as legacy purchase events will not be available."
   },
   {
     "type": "TEXT",
@@ -114,7 +119,6 @@ ___TEMPLATE_PARAMETERS___
         "isUnique": false
       }
     ],
-    "help": "",
     "enablingConditions": [
       {
         "paramName": "actionsMenu",
@@ -195,7 +199,6 @@ ___TEMPLATE_PARAMETERS___
     "name": "quantity",
     "displayName": "Quantity",
     "simpleValueType": true,
-    "valueValidators": [],
     "enablingConditions": [
       {
         "paramName": "actionsMenu",
@@ -265,6 +268,274 @@ ___TEMPLATE_PARAMETERS___
     "name": "debug",
     "checkboxText": "Enable GTM Tag Debugging",
     "simpleValueType": true
+  },
+  {
+    "type": "SELECT",
+    "name": "eCommerceEventType",
+    "displayName": "eCommerce Event Type",
+    "macrosInSelect": false,
+    "selectItems": [
+      {
+        "value": "ecommerce.product_viewed",
+        "displayValue": "Product Viewed"
+      },
+      {
+        "value": "ecommerce.cart_updated",
+        "displayValue": "Cart Updated"
+      },
+      {
+        "value": "ecommerce.checkout_started",
+        "displayValue": "Checkout started"
+      },
+      {
+        "value": "ecommerce.order_placed",
+        "displayValue": "Order placed"
+      }
+    ],
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "actionsMenu",
+        "paramValue": "logEcommerceEvent",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "SELECT",
+    "name": "eCommerceCartAction",
+    "displayName": "Cart Update Action",
+    "macrosInSelect": false,
+    "selectItems": [
+      {
+        "value": "replace",
+        "displayValue": "Replace"
+      },
+      {
+        "value": "add",
+        "displayValue": "Add"
+      },
+      {
+        "value": "remove",
+        "displayValue": "Remove"
+      }
+    ],
+    "simpleValueType": true,
+    "defaultValue": "replace",
+    "help": "How the products from ecommerce.items should update the cart",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceEventType",
+        "paramValue": "ecommerce.cart_updated",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "CHECKBOX",
+    "name": "eCommerceAutomaticallyParseEvent",
+    "checkboxText": "Automatically parse e-commerce event from the data layer",
+    "simpleValueType": true,
+    "defaultValue": true,
+    "help": "When enabled, this tag maps values from the standard GTM/GA4 ecommerce data layer schema. Disable this if your site uses a custom ecommerce schema and you want to provide the event fields manually.",
+    "enablingConditions": [
+      {
+        "paramName": "actionsMenu",
+        "paramValue": "logEcommerceEvent",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "eCommerceManualCurrency",
+    "displayName": "Currency",
+    "simpleValueType": true,
+    "help": "Required when automatic parsing is disabled. ISO 4217 currency code, for example USD.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceAutomaticallyParseEvent",
+        "paramValue": false,
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "eCommerceManualTotalValue",
+    "displayName": "Total Value",
+    "simpleValueType": true,
+    "help": "Required for cart replace, checkout started, and order placed events when automatic parsing is disabled.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceAutomaticallyParseEvent",
+        "paramValue": false,
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "eCommerceManualOrderId",
+    "displayName": "Order ID",
+    "simpleValueType": true,
+    "help": "Required for order placed events when automatic parsing is disabled.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceAutomaticallyParseEvent",
+        "paramValue": false,
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "PARAM_TABLE",
+    "name": "eCommerceManualProducts",
+    "displayName": "Products",
+    "paramTableColumns": [
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "productId",
+          "displayName": "Product ID",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "productName",
+          "displayName": "Product Name",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "variantId",
+          "displayName": "Variant ID",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "price",
+          "displayName": "Price",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "quantity",
+          "displayName": "Quantity",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "imageUrl",
+          "displayName": "Image URL",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "productUrl",
+          "displayName": "Product URL",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      }
+    ],
+    "help": "Required when automatic parsing is disabled. For product viewed events, the first row is used as the viewed product.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceAutomaticallyParseEvent",
+        "paramValue": false,
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "eCommerceCartId",
+    "displayName": "Cart ID",
+    "simpleValueType": true,
+    "help": "Unique identifier for the cart. Shared across cart, checkout, and order events for the user’s cart mapping. Required for \"ecommerce.cart_updated\" events.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceEventType",
+        "paramValue": "ecommerce.cart_updated",
+        "type": "EQUALS"
+      },
+      {
+        "paramName": "eCommerceEventType",
+        "paramValue": "ecommerce.checkout_started",
+        "type": "EQUALS"
+      },
+      {
+        "paramName": "eCommerceEventType",
+        "paramValue": "ecommerce.order_placed",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "TEXT",
+    "name": "eCommerceCheckoutId",
+    "displayName": "Checkout ID",
+    "simpleValueType": true,
+    "help": "Required. Unique identifier for the checkout session.",
+    "enablingConditions": [
+      {
+        "paramName": "eCommerceEventType",
+        "paramValue": "ecommerce.checkout_started",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
+    "type": "PARAM_TABLE",
+    "name": "eCommerceEventMetadata",
+    "displayName": "eCommerce Event Metadata",
+    "paramTableColumns": [
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "metadataPropertyKey",
+          "displayName": "Metadata property key",
+          "simpleValueType": true
+        },
+        "isUnique": true
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "metadataPropertyValue",
+          "displayName": "Metadata property value",
+          "simpleValueType": true
+        },
+        "isUnique": false
+      }
+    ],
+    "help": "Enter the key/value pairs for each property that should be sent in the metadata field.",
+    "enablingConditions": [
+      {
+        "paramName": "actionsMenu",
+        "paramValue": "logEcommerceEvent",
+        "type": "EQUALS"
+      }
+    ]
   }
 ]
 
@@ -344,6 +615,169 @@ if (action === 'eCommercePurchase') {
     }
   } else {
     log(message, "Data layer variable ecommerce.items could not be read.");
+  }
+}
+
+if (action === 'logEcommerceEvent') {
+  const eventType = data.eCommerceEventType;
+  const source = "google_tag_manager_web";
+
+  const currencyKey = 'ecommerce.currency';
+  const valueKey = 'ecommerce.value';
+  const itemsKey = 'ecommerce.items';
+  const ecommerceTransactionIdKey = 'ecommerce.transaction_id';
+
+  const readDataLayerValue = (key) => {
+    if (queryPermission('read_data_layer', key)) {
+      return copyFromDataLayer(key);
+    }
+    log(message, "Data layer variable " + key + " could not be read.");
+    return undefined;
+  };
+
+  const buildEventMetadata = (metadataRows) => {
+    const metadata = {};
+    let hasMetadata = false;
+    if (metadataRows && metadataRows.length > 0) {
+      metadataRows.forEach((row) => {
+        if (row.metadataPropertyKey && row.metadataPropertyValue != null && row.metadataPropertyValue !== '') {
+          metadata[row.metadataPropertyKey] = row.metadataPropertyValue;
+          hasMetadata = true;
+        }
+      });
+    }
+    return hasMetadata ? metadata : undefined;
+  };
+
+  const isBlankString = (value) => {
+    for (let i = 0; i < value.length; i++) {
+      const char = value.charAt(i);
+      if (char !== ' ' && char !== '\t' && char !== '\n' && char !== '\r') {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const parseNumber = (value) => {
+    if (value == null || typeof value === 'number') {
+      return value;
+    }
+    if (typeof value !== 'string') {
+      return value;
+    }
+    if (isBlankString(value)) {
+      return undefined;
+    }
+    const parsed = value * 1;
+    return parsed === parsed ? parsed : value;
+  };
+
+  const mapItemToProduct = (item) => {
+    const productId = item.item_id || item.productId;
+    const product = {
+      product_id: productId,
+      product_name: item.item_name || item.productName,
+      variant_id: item.item_variant || item.variantId || productId,
+      quantity: item.quantity == null || item.quantity === '' ? 1 : parseNumber(item.quantity),
+      price: parseNumber(item.price)
+    };
+    const imageUrl = item.image_url || item.imageUrl;
+    const productUrl = item.product_url || item.productUrl;
+    if (imageUrl) {
+      product.image_url = imageUrl;
+    }
+    if (productUrl) {
+      product.product_url = productUrl;
+    }
+    return product;
+  };
+
+  const mapItemsToProducts = (items) => {
+    const products = [];
+    if (items && items.length > 0) {
+      items.forEach((item) => {
+        products.push(mapItemToProduct(item));
+      });
+    }
+    return products;
+  };
+
+  const automaticallyParseEcommerceEvent = data.eCommerceAutomaticallyParseEvent !== false;
+  const items = automaticallyParseEcommerceEvent ? readDataLayerValue(itemsKey) : data.eCommerceManualProducts;
+  if (!items || items.length <= 0) {
+    log(message, "No eCommerce products were provided.");
+  } else {
+    const firstItem = items[0];
+    const currency = automaticallyParseEcommerceEvent ? readDataLayerValue(currencyKey) || firstItem.currency : data.eCommerceManualCurrency;
+    const totalValue = parseNumber(
+      automaticallyParseEcommerceEvent ? readDataLayerValue(valueKey) : data.eCommerceManualTotalValue
+    );
+    const eventMetadata = buildEventMetadata(data.eCommerceEventMetadata);
+    const products = mapItemsToProducts(items);
+    const properties = {
+      currency: currency,
+      source: source
+    };
+    let shouldLogEvent = true;
+
+    if (eventMetadata) {
+      properties.metadata = eventMetadata;
+    }
+
+    switch (eventType) {
+      case "ecommerce.product_viewed":
+        properties.product_id = firstItem.item_id || firstItem.productId;
+        properties.product_name = firstItem.item_name || firstItem.productName;
+        properties.variant_id = firstItem.item_variant || firstItem.variantId || properties.product_id;
+        properties.price = parseNumber(firstItem.price);
+        if (firstItem.image_url || firstItem.imageUrl) {
+          properties.image_url = firstItem.image_url || firstItem.imageUrl;
+        }
+        if (firstItem.product_url || firstItem.productUrl) {
+          properties.product_url = firstItem.product_url || firstItem.productUrl;
+        }
+        break;
+      case "ecommerce.cart_updated":
+        properties.cart_id = data.eCommerceCartId;
+        properties.action = data.eCommerceCartAction || 'replace';
+        properties.products = products;
+        if (totalValue != null) {
+          properties.total_value = totalValue;
+        }
+        break;
+      case "ecommerce.checkout_started":
+        properties.checkout_id = data.eCommerceCheckoutId;
+        properties.products = products;
+        if (data.eCommerceCartId) {
+          properties.cart_id = data.eCommerceCartId;
+        }
+        if (totalValue != null) {
+          properties.total_value = totalValue;
+        }
+        break;
+      case "ecommerce.order_placed":
+        properties.order_id = automaticallyParseEcommerceEvent ? readDataLayerValue(ecommerceTransactionIdKey) : data.eCommerceManualOrderId;
+        properties.products = products;
+        if (data.eCommerceCartId) {
+          properties.cart_id = data.eCommerceCartId;
+        }
+        if (totalValue != null) {
+          properties.total_value = totalValue;
+        }
+        break;
+      default:
+        log(message, "Unknown eCommerce event type: " + eventType);
+        shouldLogEvent = false;
+        break;
+    }
+
+    if (shouldLogEvent) {
+      callInWindow(sdkObject + '.logEcommerceEvent', {
+        name: eventType,
+        properties: properties
+      });
+    }
   }
 }
 
@@ -445,6 +879,45 @@ ___WEB_PERMISSIONS___
                   {
                     "type": 8,
                     "boolean": true
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "appboy.logEcommerceEvent"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
                   },
                   {
                     "type": 8,
@@ -962,6 +1435,45 @@ ___WEB_PERMISSIONS___
                     "boolean": true
                   }
                 ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "key"
+                  },
+                  {
+                    "type": 1,
+                    "string": "read"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  },
+                  {
+                    "type": 1,
+                    "string": "execute"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "braze.logEcommerceEvent"
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": false
+                  },
+                  {
+                    "type": 8,
+                    "boolean": true
+                  }
+                ]
               }
             ]
           }
@@ -995,6 +1507,18 @@ ___WEB_PERMISSIONS___
               {
                 "type": 1,
                 "string": "ecommerce.items"
+              },
+              {
+                "type": 1,
+                "string": "ecommerce.currency"
+              },
+              {
+                "type": 1,
+                "string": "ecommerce.value"
+              },
+              {
+                "type": 1,
+                "string": "ecommerce.transaction_id"
               }
             ]
           }
@@ -1258,6 +1782,513 @@ scenarios:
 
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId1, testPrice1, testCurrencyCode1, testQuantity1, testPurchaseProperties1);
     assertApi('callInWindow').wasCalledWith('appboy.logPurchase', testId2, testPrice2, testCurrencyCode2, testQuantity2, testPurchaseProperties2);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for product viewed
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.product_viewed';
+    mockData.eCommerceEventMetadata = [
+      {metadataPropertyKey: 'page_type', metadataPropertyValue: 'pdp'}
+    ];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: '9.99',
+            quantity: '1',
+            image_url: 'https://example.com/tee.png',
+            product_url: 'https://example.com/tee'
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return '9.99';
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.product_viewed',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        metadata: {
+          page_type: 'pdp'
+        },
+        product_id: 'SKU_12345',
+        product_name: 'Stan and Friends Tee',
+        variant_id: 'green',
+        price: 9.99,
+        image_url: 'https://example.com/tee.png',
+        product_url: 'https://example.com/tee'
+      }
+    };
+
+    mock('callInWindow', function(method, event) {
+      if (method !== 'braze.logEcommerceEvent' && method !== 'appboy.logEcommerceEvent') {
+        fail('Unexpected method ' + method + " was called.");
+      }
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for cart updated
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceCartAction = 'add';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: '9.99',
+            quantity: '1'
+          },
+          {
+            item_id: 'SKU_12346',
+            item_name: 'Google Grey Women Tee',
+            price: '20.99',
+            quantity: '2'
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return '51.97';
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.cart_updated',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        cart_id: 'cart-123',
+        action: 'add',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          },
+          {
+            product_id: 'SKU_12346',
+            product_name: 'Google Grey Women Tee',
+            variant_id: 'SKU_12346',
+            quantity: 2,
+            price: 20.99
+          }
+        ],
+        total_value: 51.97
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for cart replace
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceCartAction = 'replace';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: 9.99,
+            quantity: 1
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return 9.99;
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.cart_updated',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        cart_id: 'cart-123',
+        action: 'replace',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          }
+        ],
+        total_value: 9.99
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for cart remove
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceCartAction = 'remove';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: 9.99,
+            quantity: 1
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.cart_updated',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        cart_id: 'cart-123',
+        action: 'remove',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          }
+        ]
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for checkout started
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.checkout_started';
+    mockData.eCommerceCheckoutId = 'checkout-123';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: 9.99,
+            quantity: 1
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return 9.99;
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.checkout_started',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        checkout_id: 'checkout-123',
+        total_value: 9.99,
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          }
+        ]
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent with manual fields
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.order_placed';
+    mockData.eCommerceAutomaticallyParseEvent = false;
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceManualCurrency = 'USD';
+    mockData.eCommerceManualTotalValue = '19.98';
+    mockData.eCommerceManualOrderId = 'order-123';
+    mockData.eCommerceManualProducts = [
+      {
+        productId: 'SKU_12345',
+        productName: 'Stan and Friends Tee',
+        variantId: 'green',
+        price: '9.99',
+        quantity: '2',
+        imageUrl: 'https://example.com/tee.png',
+        productUrl: 'https://example.com/tee'
+      }
+    ];
+    mockData.eCommerceEventMetadata = [];
+
+    const testEvent = {
+      name: 'ecommerce.order_placed',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        order_id: 'order-123',
+        cart_id: 'cart-123',
+        total_value: 19.98,
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 2,
+            price: 9.99,
+            image_url: 'https://example.com/tee.png',
+            product_url: 'https://example.com/tee'
+          }
+        ]
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent with blank manual total value
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceCartAction = 'remove';
+    mockData.eCommerceAutomaticallyParseEvent = false;
+    mockData.eCommerceManualCurrency = 'USD';
+    mockData.eCommerceManualTotalValue = '';
+    mockData.eCommerceManualProducts = [
+      {
+        productId: 'SKU_12345',
+        productName: 'Stan and Friends Tee',
+        variantId: 'green',
+        price: '9.99',
+        quantity: '1'
+      }
+    ];
+    mockData.eCommerceEventMetadata = [];
+
+    const testEvent = {
+      name: 'ecommerce.cart_updated',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        cart_id: 'cart-123',
+        action: 'remove',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          }
+        ]
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent for order placed
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.order_placed';
+    mockData.eCommerceEventMetadata = [
+      {metadataPropertyKey: 'order_number', metadataPropertyValue: '1001'}
+    ];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: 9.99,
+            quantity: 1
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return 9.99;
+      }
+      if (key === 'ecommerce.transaction_id') {
+        return 'order-123';
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.order_placed',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        metadata: {
+          order_number: '1001'
+        },
+        order_id: 'order-123',
+        total_value: 9.99,
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          }
+        ]
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Do not call logEcommerceEvent when ecommerce items are missing
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [];
+      }
+      return undefined;
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasNotCalled();
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Do not call logEcommerceEvent for unknown event type
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.unknown';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: 9.99,
+            quantity: 1
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return 9.99;
+      }
+      return undefined;
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasNotCalled();
     assertApi('gtmOnSuccess').wasCalled();
 - name: Call openSession if user chooses this option
   code: |-
