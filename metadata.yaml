@@ -1,6 +1,8 @@
 homepage: "https://www.braze.com/"
 documentation: "https://github.com/braze-inc/braze-gtm-actions"
 versions:
+  - sha: 60c58d33bf4a9774884830fd2adbd465b894afa0
+    changeNotes: Adds support for product-level metadata on eCommerce events
   - sha: 3351b034be8ee6f22c4e8dd6df5f1a9ac9d99180
     changeNotes: Adds support for eCommerce events
   - sha: 23283de19300888ce4a4a87c875eab28e2ef6697

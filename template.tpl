@@ -455,9 +455,18 @@ ___TEMPLATE_PARAMETERS___
           "simpleValueType": true
         },
         "isUnique": false
+      },
+      {
+        "param": {
+          "type": "TEXT",
+          "name": "productMetadata",
+          "displayName": "Product Metadata (JSON)",
+          "simpleValueType": true
+        },
+        "isUnique": false
       }
     ],
-    "help": "Required when automatic parsing is disabled. For product viewed events, the first row is used as the viewed product.",
+    "help": "Required when automatic parsing is disabled. For product viewed events, the first row is used as the viewed product. Product Metadata is optional and must be a JSON object, for example {\"color\": \"green\", \"size\": \"M\"}. Product metadata is only sent when automatic parsing is disabled, and is not used for product viewed events (use the eCommerce Event Metadata table instead).",
     "enablingConditions": [
       {
         "paramName": "eCommerceAutomaticallyParseEvent",
@@ -547,6 +556,9 @@ const copyFromWindow = require('copyFromWindow');
 const callInWindow = require('callInWindow');
 const queryPermission = require('queryPermission');
 const copyFromDataLayer = require('copyFromDataLayer');
+const getType = require('getType');
+const JSON = require('JSON');
+const Object = require('Object');
 const log = data.debug ? logToConsole : (() => {});
 const message = "Braze: ";
 
@@ -673,7 +685,40 @@ if (action === 'logEcommerceEvent') {
     return parsed === parsed ? parsed : value;
   };
 
-  const mapItemToProduct = (item) => {
+  // Copies entries from source into target using the same rules as buildEventMetadata:
+  // entries with an empty key or a null or empty-string value are skipped, and
+  // everything else is passed through unchanged for the Web SDK to validate.
+  const addMetadata = (target, source) => {
+    let added = false;
+    if (getType(source) !== 'object') {
+      return added;
+    }
+    Object.keys(source).forEach((key) => {
+      const value = source[key];
+      if (key && value != null && value !== '') {
+        target[key] = value;
+        added = true;
+      }
+    });
+    return added;
+  };
+
+  // Builds product-level metadata from the "Product Metadata (JSON)" column of the
+  // manual Products table. Product metadata is never derived from the data layer.
+  const buildProductMetadata = (item) => {
+    if (getType(item.productMetadata) !== 'string' || isBlankString(item.productMetadata)) {
+      return undefined;
+    }
+    const parsed = JSON.parse(item.productMetadata);
+    if (getType(parsed) !== 'object') {
+      log(message, "Product Metadata must be a valid JSON object and was ignored: " + item.productMetadata);
+      return undefined;
+    }
+    const metadata = {};
+    return addMetadata(metadata, parsed) ? metadata : undefined;
+  };
+
+  const mapItemToProduct = (item, includeMetadata) => {
     const productId = item.item_id || item.productId;
     const product = {
       product_id: productId,
@@ -690,14 +735,20 @@ if (action === 'logEcommerceEvent') {
     if (productUrl) {
       product.product_url = productUrl;
     }
+    if (includeMetadata) {
+      const productMetadata = buildProductMetadata(item);
+      if (productMetadata) {
+        product.metadata = productMetadata;
+      }
+    }
     return product;
   };
 
-  const mapItemsToProducts = (items) => {
+  const mapItemsToProducts = (items, includeMetadata) => {
     const products = [];
     if (items && items.length > 0) {
       items.forEach((item) => {
-        products.push(mapItemToProduct(item));
+        products.push(mapItemToProduct(item, includeMetadata));
       });
     }
     return products;
@@ -714,7 +765,7 @@ if (action === 'logEcommerceEvent') {
       automaticallyParseEcommerceEvent ? readDataLayerValue(valueKey) : data.eCommerceManualTotalValue
     );
     const eventMetadata = buildEventMetadata(data.eCommerceEventMetadata);
-    const products = mapItemsToProducts(items);
+    const products = mapItemsToProducts(items, !automaticallyParseEcommerceEvent);
     const properties = {
       currency: currency,
       source: source
@@ -2289,6 +2340,230 @@ scenarios:
     runCode(mockData);
 
     assertApi('callInWindow').wasNotCalled();
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Do not send product metadata when automatically parsing data layer items
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.cart_updated';
+    mockData.eCommerceCartId = 'cart-123';
+    mockData.eCommerceCartAction = 'add';
+    mockData.eCommerceEventMetadata = [];
+
+    mock('queryPermission', function(permission, key) {
+      return true;
+    });
+
+    mock('copyFromDataLayer', function(key) {
+      if (key === 'ecommerce.items') {
+        return [
+          {
+            item_id: 'SKU_12345',
+            item_name: 'Stan and Friends Tee',
+            item_variant: 'green',
+            price: '9.99',
+            quantity: '1',
+            item_brand: 'Google',
+            item_category: 'Apparel',
+            discount: 2.5,
+            metadata: {size: 'M'},
+            productMetadata: '{"color": "green"}'
+          },
+          {
+            item_id: 'SKU_12346',
+            item_name: 'Google Grey Women Tee',
+            price: '20.99',
+            quantity: '2'
+          }
+        ];
+      }
+      if (key === 'ecommerce.currency') {
+        return 'USD';
+      }
+      if (key === 'ecommerce.value') {
+        return '51.97';
+      }
+      return undefined;
+    });
+
+    const testEvent = {
+      name: 'ecommerce.cart_updated',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        cart_id: 'cart-123',
+        action: 'add',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99
+          },
+          {
+            product_id: 'SKU_12346',
+            product_name: 'Google Grey Women Tee',
+            variant_id: 'SKU_12346',
+            quantity: 2,
+            price: 20.99
+          }
+        ],
+        total_value: 51.97
+      }
+    };
+
+    mock('callInWindow', function(method, event) {
+      if (method !== 'braze.logEcommerceEvent' && method !== 'appboy.logEcommerceEvent') {
+        fail('Unexpected method ' + method + " was called.");
+      }
+    });
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Call logEcommerceEvent with manual product metadata
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.checkout_started';
+    mockData.eCommerceAutomaticallyParseEvent = false;
+    mockData.eCommerceCheckoutId = 'checkout-123';
+    mockData.eCommerceManualCurrency = 'USD';
+    mockData.eCommerceManualTotalValue = '29.97';
+    mockData.eCommerceManualProducts = [
+      {
+        productId: 'SKU_12345',
+        productName: 'Stan and Friends Tee',
+        variantId: 'green',
+        price: '9.99',
+        quantity: '1',
+        productMetadata: '{"color": "green", "size": "M"}'
+      },
+      {
+        productId: 'SKU_12346',
+        productName: 'Google Grey Women Tee',
+        variantId: 'grey',
+        price: '19.98',
+        quantity: '1',
+        productMetadata: 'not valid json'
+      },
+      {
+        productId: 'SKU_12347',
+        productName: 'Google Navy Tee',
+        variantId: 'navy',
+        price: '0',
+        quantity: '1',
+        productMetadata: ''
+      }
+    ];
+    mockData.eCommerceEventMetadata = [];
+
+    const testEvent = {
+      name: 'ecommerce.checkout_started',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        checkout_id: 'checkout-123',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99,
+            metadata: {
+              color: 'green',
+              size: 'M'
+            }
+          },
+          {
+            product_id: 'SKU_12346',
+            product_name: 'Google Grey Women Tee',
+            variant_id: 'grey',
+            quantity: 1,
+            price: 19.98
+          },
+          {
+            product_id: 'SKU_12347',
+            product_name: 'Google Navy Tee',
+            variant_id: 'navy',
+            quantity: 1,
+            price: 0
+          }
+        ],
+        total_value: 29.97
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
+    assertApi('gtmOnSuccess').wasCalled();
+- name: Drop only empty product metadata entries and pass the rest through
+  code: |-
+    mockData.actionsMenu = 'logEcommerceEvent';
+    mockData.eCommerceEventType = 'ecommerce.checkout_started';
+    mockData.eCommerceAutomaticallyParseEvent = false;
+    mockData.eCommerceCheckoutId = 'checkout-123';
+    mockData.eCommerceManualCurrency = 'USD';
+    mockData.eCommerceManualTotalValue = '19.98';
+    mockData.eCommerceEventMetadata = [];
+    mockData.eCommerceManualProducts = [
+      {
+        productId: 'SKU_12345',
+        productName: 'Stan and Friends Tee',
+        variantId: 'green',
+        price: '9.99',
+        quantity: '1',
+        productMetadata: '{"ok": "yes", "": "emptyKey", "nothing": null, "empty": "", "zero": 0, "no": false, "$passthrough": "x", "spaced": "  ", "keep": {"a": [1, true, "b"]}}'
+      },
+      {
+        productId: 'SKU_12346',
+        productName: 'Google Grey Women Tee',
+        variantId: 'grey',
+        price: '9.99',
+        quantity: '1',
+        productMetadata: '{"nothing": null, "empty": ""}'
+      }
+    ];
+
+    const testEvent = {
+      name: 'ecommerce.checkout_started',
+      properties: {
+        currency: 'USD',
+        source: 'google_tag_manager_web',
+        checkout_id: 'checkout-123',
+        products: [
+          {
+            product_id: 'SKU_12345',
+            product_name: 'Stan and Friends Tee',
+            variant_id: 'green',
+            quantity: 1,
+            price: 9.99,
+            metadata: {
+              ok: 'yes',
+              zero: 0,
+              no: false,
+              '$passthrough': 'x',
+              spaced: '  ',
+              keep: {a: [1, true, 'b']}
+            }
+          },
+          {
+            product_id: 'SKU_12346',
+            product_name: 'Google Grey Women Tee',
+            variant_id: 'grey',
+            quantity: 1,
+            price: 9.99
+          }
+        ],
+        total_value: 19.98
+      }
+    };
+
+    runCode(mockData);
+
+    assertApi('callInWindow').wasCalledWith('braze.logEcommerceEvent', testEvent);
     assertApi('gtmOnSuccess').wasCalled();
 - name: Call openSession if user chooses this option
   code: |-
